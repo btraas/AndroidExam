@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">AndroidExam</string>
+    <string name="cats_url">http://thecatapi.com/api/images/get?type=jpg</string>
+
+
+    <string name="no_connection">No connection to server</string>
+    <string name="invalid_parameters">Invalid parameters</string>
+    <string name="invalid_response">Invalid Response from server</string>
+    <string name="no_updates">Up-to-date</string>
+
+
 </resources>
