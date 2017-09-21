@@ -36,8 +36,9 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:id="@+id/updateSeconds"
+        android:width="100dp"
         android:text="2"/>
-    <Button
+    <!--<Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="pause"
@@ -46,7 +47,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="resume"
-        android:text="resume"/>
+        android:text="resume"/>-->
+    <ToggleButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textOn="resume"
+        android:textOff="pause"
+        android:id="@+id/togglePause"
+        android:checked="true"
+        />
 
 
 </LinearLayout>

@@ -9,9 +9,12 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,6 +24,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.UnknownHostException;
 import java.util.Iterator;
 
 public class MainActivity extends AppCompatActivity {
@@ -42,6 +46,16 @@ public class MainActivity extends AppCompatActivity {
         ImageView bmImage = (ImageView)findViewById(R.id.imageView);
         thisActivity = this;
         waitSecondsView = (TextView) findViewById(R.id.updateSeconds);
+
+        ToggleButton t = (ToggleButton)findViewById(R.id.togglePause);
+        t.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                LoopingImageTask.PAUSED = !b;
+                String msg = b ? "resumed" : "paused";
+                Toast.makeText(thisActivity, "Downloading "+msg, Toast.LENGTH_SHORT).show();
+            }
+        });
 
         try {
 
@@ -70,15 +84,18 @@ public class MainActivity extends AppCompatActivity {
         ImageView bmImage;
         public static int COUNTER = 0;
         public static String LAST_URL = "";
+        private Activity a;
 
-        public DownloadImageTask(ImageView bmImage) {
+        public DownloadImageTask(Activity a, ImageView bmImage) {
             this.bmImage = bmImage;
+            this.a = a;
         }
 
 
 
         protected Bitmap doInBackground(String... urls) {
-            String urldisplay = urls[0];
+
+            final String urldisplay = urls[0];
 
             Bitmap mIcon11 = null;
             try {
@@ -90,15 +107,29 @@ public class MainActivity extends AppCompatActivity {
                 */
 
                 // stackoverflow.com/questions/2659000/java-how-to-find-the-redirected-url-of-a-url
-                URLConnection con = new URL( urldisplay ).openConnection();
+                final URL connectURL = new URL( urldisplay );
+                final URLConnection con = connectURL.openConnection();
                 //System.out.println( "orignal url: " + con.getURL() );
-                con.connect();
+
+                try {
+                    con.connect();
+                    InputStream is = con.getInputStream();
+                    mIcon11 = BitmapFactory.decodeStream(is);
+                    is.close();
+                } catch (UnknownHostException e) {
+
+                    a.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(a, "Unknown host: "+con.getURL().getHost(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
                 //System.out.println( "connected url: " + con.getURL() );
-                InputStream is = con.getInputStream();
+                //InputStream is = con.getInputStream();
                 //System.out.println( "redirected url: " + con.getURL() );
                 LAST_URL = con.getURL().toString();
-                mIcon11 = BitmapFactory.decodeStream(is);
-                is.close();
+
 
 
             } catch (Exception e) {
@@ -136,16 +167,18 @@ public class MainActivity extends AppCompatActivity {
             //final String urldisplay = urls[0];
 
             try {
+
                 Thread.sleep(1000 * seconds);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            if(!PAUSED) {
+            if(!PAUSED && seconds > 0) {
+
                 a.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        (new DownloadImageTask(bmImage)).execute(urldisplay);
+                        (new DownloadImageTask(a, bmImage)).execute(urldisplay);
                     }
                 });
             }
@@ -154,9 +187,25 @@ public class MainActivity extends AppCompatActivity {
 
         protected void onPostExecute(Void result) {
 
-            TextView seconds = (TextView)a.findViewById(R.id.updateSeconds);
+            final TextView seconds = (TextView)a.findViewById(R.id.updateSeconds);
 
-            (new LoopingImageTask(a, urldisplay, bmImage, Integer.parseInt(seconds.getText().toString()))).execute();
+            final String secondsText = seconds.getText().toString();
+            int secondsInt;
+            try {
+                secondsInt = Integer.parseInt(secondsText);
+                if(secondsInt <= 0) throw new NumberFormatException("<= 0 not allowed!");
+            } catch (NumberFormatException e) {
+                secondsInt = 1;
+                if(!secondsText.trim().isEmpty()) {
+                    a.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(a, "Invalid number: " + secondsText, Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            }
+            (new LoopingImageTask(a, urldisplay, bmImage, secondsInt)).execute();
 
         }
     }
@@ -171,10 +220,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void pause(View v) {
         LoopingImageTask.PAUSED = true;
+        Toast.makeText(this, "Downloading paused", Toast.LENGTH_SHORT).show();
     }
 
     public void resume(View v) {
         LoopingImageTask.PAUSED = false;
+        Toast.makeText(this, "Downloading resumed", Toast.LENGTH_SHORT).show();
     }
 
 
